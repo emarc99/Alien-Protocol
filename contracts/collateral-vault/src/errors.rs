@@ -8,4 +8,3 @@ pub enum VaultError {
     VaultPaused = 2,
     UnsupportedAsset = 3,
 }
-

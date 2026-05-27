@@ -73,4 +73,3 @@ fn test_vault_deposit_flow() {
     assert_eq!(token_client.balance(&contract_id), 700);
     assert_eq!(client.get_position_balance(&user, &token_contract_id), 700);
 }
-

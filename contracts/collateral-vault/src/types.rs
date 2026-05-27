@@ -9,4 +9,3 @@ pub enum DataKey {
     Position(Address, Address), // (user, asset)
     PositionIndex,
 }
-

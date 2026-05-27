@@ -7,4 +7,3 @@ pub struct Deposited {
     pub asset: Address,
     pub amount: i128,
 }
-

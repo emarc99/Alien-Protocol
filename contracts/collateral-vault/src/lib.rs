@@ -9,6 +9,7 @@ pub struct VaultContract;
 #[contractimpl]
 impl VaultContract {
     pub fn initialize(env: Env, admin: Address, _oracle: Address) {
+        admin.require_auth();
         if storage::get_admin(&env).is_some() {
             panic!("already initialized");
         }
@@ -48,15 +49,15 @@ impl VaultContract {
         user.require_auth();
 
         if amount <= 0 {
-            panic!("amount must be positive");
+            soroban_sdk::panic_with_error!(&env, VaultError::InvalidInputs);
         }
 
         if storage::is_paused(&env) {
-            panic!("vault is paused");
+            soroban_sdk::panic_with_error!(&env, VaultError::VaultPaused);
         }
 
         if !storage::is_supported_asset(&env, &asset) {
-            panic!("asset is not supported");
+            soroban_sdk::panic_with_error!(&env, VaultError::UnsupportedAsset);
         }
 
         let token_client = token::Client::new(&env, &asset);
@@ -94,4 +95,3 @@ mod events;
 mod storage;
 mod test;
 mod types;
-
