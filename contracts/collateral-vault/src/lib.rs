@@ -66,7 +66,14 @@ impl VaultContract {
     pub fn add_supported_asset(env: Env, asset: Address) {
         let admin = storage::get_admin(&env).expect("not initialized");
         admin.require_auth();
+
+        if storage::is_supported_asset(&env, &asset) {
+            soroban_sdk::panic_with_error!(&env, VaultError::AlreadySupported);
+        }
+
         storage::add_supported_asset(&env, &asset);
+
+        events::AssetAdded { asset }.publish(&env);
     }
 
     pub fn remove_supported_asset(env: Env, asset: Address) {
@@ -94,7 +101,7 @@ impl VaultContract {
         storage::get_position_balance(&env, &user, &asset)
     }
 
-    pub fn get_position_index(env: Env) -> soroban_sdk::Vec<Address> {
+    pub fn get_position_index(env: Env) -> Vec<Address> {
         storage::get_position_index(&env)
     }
 
@@ -114,14 +121,16 @@ impl VaultContract {
         }
 
         let token_client = token::Client::new(&env, &asset);
-        token_client.transfer(&user, env.current_contract_address(), &amount);
+        token_client.transfer(&user, &env.current_contract_address(), &amount);
 
         let balance = storage::get_position_balance(&env, &user, &asset);
         let new_balance = balance + amount;
         storage::set_position_balance(&env, &user, &asset, new_balance);
 
-        storage::add_to_position_index(&env, &user);
+        // Track this asset for the user (used to build Position)
         storage::add_user_asset(&env, &user, &asset);
+        // Add user to the global position index if not already present
+        storage::add_to_position_index(&env, &user);
 
         events::Deposited {
             user,
@@ -147,19 +156,16 @@ impl VaultContract {
         }
 
         let balance = storage::get_position_balance(&env, &receiver, &asset);
-        if balance < amount {
-            panic!("insufficient balance");
+        if amount > balance {
+            soroban_sdk::panic_with_error!(&env, VaultError::InvalidInputs);
         }
 
         let new_balance = balance - amount;
         storage::set_position_balance(&env, &receiver, &asset, new_balance);
 
         // If the user has no remaining balance across any asset, remove from index
-        let user_assets = storage::get_user_assets(&env, &receiver);
-        let has_balance = user_assets.iter().any(|a| {
-            storage::get_position_balance(&env, &receiver, &a) > 0
-        });
-        if !has_balance {
+        let position = storage::get_position(&env, &receiver);
+        if position.collateral.is_empty() {
             storage::remove_from_position_index(&env, &receiver);
         }
 
@@ -168,32 +174,7 @@ impl VaultContract {
     }
 
     pub fn get_all_positions(env: Env) -> Vec<Position> {
-        let index = storage::get_position_index(&env);
-        let mut positions: Vec<Position> = Vec::new(&env);
-
-        for user in index.iter() {
-            let assets = storage::get_user_assets(&env, &user);
-            let mut collateral = Vec::new(&env);
-
-            for asset in assets.iter() {
-                let amount = storage::get_position_balance(&env, &user, &asset);
-                if amount > 0 {
-                    collateral.push_back(CollateralAsset {
-                        asset: asset.clone(),
-                        amount,
-                    });
-                }
-            }
-
-            if !collateral.is_empty() {
-                positions.push_back(Position {
-                    user: user.clone(),
-                    collateral,
-                });
-            }
-        }
-
-        positions
+        storage::get_all_positions(&env)
     }
 
     pub fn seize_collateral(_env: Env, _user: Address, _asset: Address, _amount: i128) {}
@@ -203,7 +184,7 @@ impl VaultContract {
     pub fn get_position(env: Env, user: Address) -> Position {
         let index = storage::get_position_index(&env);
         let assets = storage::get_user_assets(&env, &user);
-        let mut collateral = soroban_sdk::Vec::new(&env);
+        let mut collateral: soroban_sdk::Vec<CollateralAsset> = soroban_sdk::Vec::new(&env);
         let mut has_balance = false;
 
         for asset in assets.iter() {
