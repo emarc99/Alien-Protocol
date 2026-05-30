@@ -1,4 +1,4 @@
-use crate::types::DataKey;
+use crate::types::{CollateralAsset, DataKey, Position};
 use soroban_sdk::{Address, Env, Vec};
 
 pub fn get_admin(env: &Env) -> Option<Address> {
@@ -107,6 +107,21 @@ pub fn add_to_position_index(env: &Env, user: &Address) {
     }
 }
 
+/// Remove a user from the position index (called when their balance reaches zero).
+pub fn remove_from_position_index(env: &Env, user: &Address) {
+    let index = get_position_index(env);
+    let mut new_index: Vec<Address> = Vec::new(env);
+    for addr in index.iter() {
+        if &addr != user {
+            new_index.push_back(addr);
+        }
+    }
+    env.storage()
+        .persistent()
+        .set(&DataKey::PositionIndex, &new_index);
+}
+
+/// Track which assets a user has deposited into.
 pub fn get_user_assets(env: &Env, user: &Address) -> Vec<Address> {
     env.storage()
         .persistent()
@@ -122,4 +137,39 @@ pub fn add_user_asset(env: &Env, user: &Address, asset: &Address) {
             .persistent()
             .set(&DataKey::UserAssets(user.clone()), &assets);
     }
+}
+
+/// Build a Position for a user by loading all their non-zero balances.
+pub fn get_position(env: &Env, user: &Address) -> Position {
+    let all_assets = get_user_assets(env, user);
+    let mut collateral: Vec<CollateralAsset> = Vec::new(env);
+
+    for asset in all_assets.iter() {
+        let balance = get_position_balance(env, user, &asset);
+        if balance > 0 {
+            collateral.push_back(CollateralAsset {
+                asset: asset.clone(),
+                amount: balance,
+            });
+        }
+    }
+
+    Position {
+        user: user.clone(),
+        collateral,
+    }
+}
+
+/// Returns all active positions (users with at least one non-zero balance).
+pub fn get_all_positions(env: &Env) -> Vec<Position> {
+    let index = get_position_index(env);
+    let mut positions: Vec<Position> = Vec::new(env);
+    for user in index.iter() {
+        let position = get_position(env, &user);
+        // Only include users that still have at least one active balance
+        if !position.collateral.is_empty() {
+            positions.push_back(position);
+        }
+    }
+    positions
 }
