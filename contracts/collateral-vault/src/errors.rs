@@ -11,4 +11,8 @@ pub enum VaultError {
     AssetNotFound = 5,
     NoPosition = 6,
     StalePrice = 7,
+    Unauthorized = 8,
+    NotInitialized = 9,
+    BelowMinCollateralRatio = 10,
+    AlreadyAdmin = 11,
 }

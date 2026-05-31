@@ -29,7 +29,8 @@ pub enum DataKey {
     /// Tracks which assets a user has ever deposited into (used to build Position).
     UserAssets(Address),
     Oracle,
-    LendingPool,
+    LiquidationEngine,
+    Pool,
 }
 
 #[contracttype]

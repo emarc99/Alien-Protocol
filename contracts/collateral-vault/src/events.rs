@@ -41,6 +41,23 @@ pub struct Unpaused {
 
 #[contractevent]
 #[derive(Clone, Debug, PartialEq)]
-pub struct LendingPoolUpdated {
-    pub lending_pool: Address,
+pub struct CollateralSeized {
+    pub user: Address,
+    pub asset: Address,
+    pub amount: i128,
+    pub liquidation_engine: Address,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, PartialEq)]
+pub struct LiquidationEngineSet {
+    pub engine: Address,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, PartialEq)]
+pub struct Withdrawn {
+    pub receiver: Address,
+    pub asset: Address,
+    pub amount: i128,
 }
