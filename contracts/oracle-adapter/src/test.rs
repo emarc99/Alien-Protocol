@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use super::*;
-use soroban_sdk::testutils::{Address as _, Events};
+use soroban_sdk::testutils::{Address as _, Events, Ledger as _};
 use soroban_sdk::{Address, Env, Symbol};
 
 fn setup_env() -> (Env, OracleContractClient<'static>, Address) {
@@ -260,4 +260,65 @@ fn test_get_price_after_update() {
     let updated_data = updated_result.unwrap();
     assert_eq!(updated_data.price, updated_price);
     assert_eq!(updated_data.timestamp, updated_timestamp);
+}
+
+#[test]
+fn test_is_price_fresh_unknown_asset() {
+    let (_env, client, _admin) = setup_env();
+    let env = _env;
+    let unknown_asset = Address::generate(&env);
+
+    assert!(!client.is_price_fresh(&unknown_asset));
+}
+
+#[test]
+fn test_is_price_fresh_within_threshold() {
+    let (_env, client, _admin) = setup_env();
+    let env = _env;
+    let asset = Address::generate(&env);
+
+    // Default ledger timestamp is 0, set price at timestamp 0
+    client.set_price(&asset, &100, &0);
+
+    assert!(client.is_price_fresh(&asset));
+}
+
+#[test]
+fn test_is_price_fresh_stale() {
+    let (_env, client, _admin) = setup_env();
+    let env = _env;
+    let asset = Address::generate(&env);
+
+    // Set price at timestamp 0 with threshold 300
+    client.set_price(&asset, &100, &0);
+
+    // Advance ledger time past the threshold
+    env.ledger().set_timestamp(301);
+
+    assert!(!client.is_price_fresh(&asset));
+}
+
+#[test]
+fn test_is_price_fresh_at_exact_threshold() {
+    let (_env, client, _admin) = setup_env();
+    let env = _env;
+    let asset = Address::generate(&env);
+
+    // Set price at timestamp 0 with threshold 300
+    client.set_price(&asset, &100, &0);
+
+    // At exactly timestamp 300 (0 + 300), price should still be fresh (<= threshold)
+    env.ledger().set_timestamp(300);
+
+    assert!(client.is_price_fresh(&asset));
+}
+
+#[test]
+fn test_is_price_fresh_uninitialized_contract() {
+    let env = Env::default();
+    let contract_id = env.register(OracleContract, ());
+    let client = OracleContractClient::new(&env, &contract_id);
+
+    let asset = Address::generate(&env);
+    assert!(!client.is_price_fresh(&asset));
 }
