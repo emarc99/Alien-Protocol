@@ -1,15 +1,37 @@
-use soroban_sdk::{contracttype, Address, Env};
+use soroban_sdk::{Address, Env};
 
-#[contracttype]
-#[derive(Clone, Debug, PartialEq)]
-pub enum DataKey {
-    Admin,
-}
+use crate::types::{DataKey, PriceData};
 
 pub fn get_admin(env: &Env) -> Option<Address> {
-    env.storage().persistent().get(&DataKey::Admin)
+    env.storage().instance().get(&DataKey::Admin)
 }
 
 pub fn set_admin(env: &Env, admin: &Address) {
-    env.storage().persistent().set(&DataKey::Admin, admin);
+    env.storage().instance().set(&DataKey::Admin, admin);
+}
+
+pub fn get_staleness_threshold(env: &Env) -> Option<u64> {
+    env.storage().instance().get(&DataKey::StalenessThreshold)
+}
+
+pub fn set_staleness_threshold(env: &Env, threshold: u64) {
+    env.storage()
+        .instance()
+        .set(&DataKey::StalenessThreshold, &threshold);
+}
+
+pub fn get_price(env: &Env, asset: &Address) -> Option<PriceData> {
+    env.storage()
+        .persistent()
+        .get(&DataKey::Price(asset.clone()))
+}
+
+pub fn set_price(env: &Env, asset: &Address, data: &PriceData) {
+    env.storage()
+        .persistent()
+        .set(&DataKey::Price(asset.clone()), data);
+}
+
+pub fn is_initialized(env: &Env) -> bool {
+    env.storage().instance().has(&DataKey::Admin)
 }
