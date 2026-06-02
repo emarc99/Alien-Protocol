@@ -277,7 +277,6 @@ fn test_is_price_fresh_within_threshold() {
     let env = _env;
     let asset = Address::generate(&env);
 
-    // Default ledger timestamp is 0, set price at timestamp 0
     client.set_price(&asset, &100, &0);
 
     assert!(client.is_price_fresh(&asset));
@@ -289,10 +288,8 @@ fn test_is_price_fresh_stale() {
     let env = _env;
     let asset = Address::generate(&env);
 
-    // Set price at timestamp 0 with threshold 300
     client.set_price(&asset, &100, &0);
 
-    // Advance ledger time past the threshold
     env.ledger().set_timestamp(301);
 
     assert!(!client.is_price_fresh(&asset));
@@ -304,10 +301,8 @@ fn test_is_price_fresh_at_exact_threshold() {
     let env = _env;
     let asset = Address::generate(&env);
 
-    // Set price at timestamp 0 with threshold 300
     client.set_price(&asset, &100, &0);
 
-    // At exactly timestamp 300 (0 + 300), price should still be fresh (<= threshold)
     env.ledger().set_timestamp(300);
 
     assert!(client.is_price_fresh(&asset));
@@ -321,4 +316,58 @@ fn test_is_price_fresh_uninitialized_contract() {
 
     let asset = Address::generate(&env);
     assert!(!client.is_price_fresh(&asset));
+}
+
+// ── Issue #511: get_admin ─────────────────────────────────────────────────────
+
+#[test]
+fn test_get_admin_returns_correct_address_after_init() {
+    let (_env, client, admin) = setup_env();
+
+    let result = client.get_admin();
+    assert!(result.is_some());
+    assert_eq!(result.unwrap(), admin);
+}
+
+#[test]
+fn test_get_admin_returns_none_before_init() {
+    let env = Env::default();
+    let contract_id = env.register(OracleContract, ());
+    let client = OracleContractClient::new(&env, &contract_id);
+
+    let result = client.get_admin();
+    assert!(result.is_none());
+}
+
+#[test]
+fn test_get_admin_does_not_mutate_state() {
+    let (_env, client, admin) = setup_env();
+
+    let result1 = client.get_admin();
+    let result2 = client.get_admin();
+
+    assert_eq!(result1, result2);
+    assert_eq!(result1.unwrap(), admin);
+}
+
+#[test]
+fn test_get_admin_returns_updated_admin_after_set_admin() {
+    let (env, client, _old_admin) = setup_env();
+
+    let new_admin = Address::generate(&env);
+    client.set_admin(&new_admin);
+
+    let result = client.get_admin();
+    assert!(result.is_some());
+    assert_eq!(result.unwrap(), new_admin);
+}
+
+#[test]
+fn test_get_admin_requires_no_auth() {
+    let (env, client, admin) = setup_env();
+
+    env.set_auths(&[]);
+    let result = client.get_admin();
+    assert!(result.is_some());
+    assert_eq!(result.unwrap(), admin);
 }
