@@ -28,7 +28,7 @@ pub fn set_paused(env: &Env, paused: bool) {
     env.storage().persistent().set(&DataKey::Paused, &paused);
 }
 
-pub fn get_lending_pool(env: &Env) -> Option<Address> {
+pub fn _get_lending_pool(env: &Env) -> Option<Address> {
     env.storage().persistent().get(&DataKey::LendingPool)
 }
 
@@ -91,14 +91,12 @@ pub fn get_oracle(env: &Env) -> Option<Address> {
     env.storage().persistent().get(&DataKey::Oracle)
 }
 
-pub fn set_oracle(env: &Env, oracle: &Address) {
+pub fn _set_oracle(env: &Env, oracle: &Address) {
     env.storage().persistent().set(&DataKey::Oracle, oracle);
 }
 
 pub fn get_liquidation_engine(env: &Env) -> Option<Address> {
-    env.storage()
-        .persistent()
-        .get(&DataKey::LiquidationEngine)
+    env.storage().persistent().get(&DataKey::LiquidationEngine)
 }
 
 pub fn set_liquidation_engine(env: &Env, engine: &Address) {
