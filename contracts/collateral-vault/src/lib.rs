@@ -32,9 +32,12 @@ impl VaultContract {
             panic!("already initialized");
         }
 
-        // Commit admin and lending_pool addresses to persistent storage
+        admin.require_auth();
+
+        // Commit admin and configured contract addresses to persistent storage
         storage::set_admin(&env, &admin);
         storage::set_lending_pool(&env, &lending_pool);
+        storage::set_oracle(&env, &lending_pool);
 
         // Explicitly set Paused to false
         storage::set_paused(&env, false);
@@ -73,6 +76,13 @@ impl VaultContract {
         storage::set_lending_pool(&env, &lending_pool);
 
         events::LendingPoolUpdated { lending_pool }.publish(&env);
+    }
+
+    pub fn set_oracle(env: Env, oracle: Address) {
+        let admin = storage::get_admin(&env).expect("not initialized");
+        admin.require_auth();
+
+        storage::set_oracle(&env, &oracle);
     }
 
     pub fn pause(env: Env) {

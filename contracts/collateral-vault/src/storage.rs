@@ -91,7 +91,7 @@ pub fn get_oracle(env: &Env) -> Option<Address> {
     env.storage().persistent().get(&DataKey::Oracle)
 }
 
-pub fn _set_oracle(env: &Env, oracle: &Address) {
+pub fn set_oracle(env: &Env, oracle: &Address) {
     env.storage().persistent().set(&DataKey::Oracle, oracle);
 }
 
