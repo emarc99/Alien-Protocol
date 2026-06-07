@@ -248,7 +248,12 @@ impl VaultContract {
         let token_client = token::Client::new(&env, &asset);
         token_client.transfer(&env.current_contract_address(), &user, &amount);
 
-        events::Withdrawn { user, asset, amount }.publish(&env);
+        events::Withdrawn {
+            user,
+            asset,
+            amount,
+        }
+        .publish(&env);
     }
 
     pub fn get_all_positions(env: Env) -> Vec<Position> {
