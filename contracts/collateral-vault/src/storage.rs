@@ -161,6 +161,20 @@ pub fn add_user_asset(env: &Env, user: &Address, asset: &Address) {
     }
 }
 
+/// Remove an asset from a user's tracked assets list (called when an asset balance hits zero).
+pub fn remove_user_asset(env: &Env, user: &Address, asset: &Address) {
+    let assets = get_user_assets(env, user);
+    let mut new_assets: Vec<Address> = Vec::new(env);
+    for a in assets.iter() {
+        if &a != asset {
+            new_assets.push_back(a);
+        }
+    }
+    env.storage()
+        .persistent()
+        .set(&DataKey::UserAssets(user.clone()), &new_assets);
+}
+
 /// Build a Position for a user by loading all their non-zero balances.
 pub fn get_position(env: &Env, user: &Address) -> Option<Position> {
     let index = get_position_index(env);

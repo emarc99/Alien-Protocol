@@ -203,8 +203,8 @@ impl VaultContract {
         .publish(&env);
     }
 
-    pub fn withdraw(env: Env, receiver: Address, asset: Address, amount: i128) {
-        receiver.require_auth();
+    pub fn withdraw(env: Env, user: Address, asset: Address, amount: i128) {
+        user.require_auth();
 
         if amount <= 0 {
             soroban_sdk::panic_with_error!(&env, VaultError::InvalidInputs);
@@ -218,29 +218,38 @@ impl VaultContract {
             soroban_sdk::panic_with_error!(&env, VaultError::UnsupportedAsset);
         }
 
-        let balance = storage::get_position_balance(&env, &receiver, &asset);
+        if storage::get_position(&env, &user).is_none() {
+            soroban_sdk::panic_with_error!(&env, VaultError::NoPosition);
+        }
+
+        let balance = storage::get_position_balance(&env, &user, &asset);
         if amount > balance {
             soroban_sdk::panic_with_error!(&env, VaultError::InvalidInputs);
         }
 
         // Safety check: collateral ratio
-        if !Self::is_withdrawal_safe(env.clone(), receiver.clone(), asset.clone(), amount) {
+        if !Self::is_withdrawal_safe(env.clone(), user.clone(), asset.clone(), amount) {
             soroban_sdk::panic_with_error!(&env, VaultError::BelowMinCollateralRatio);
         }
 
         let new_balance = balance - amount;
-        storage::set_position_balance(&env, &receiver, &asset, new_balance);
+        storage::set_position_balance(&env, &user, &asset, new_balance);
+
+        // If this asset balance reached zero, remove asset from user's assets list
+        if new_balance == 0 {
+            storage::remove_user_asset(&env, &user, &asset);
+        }
 
         // If the user has no remaining balance across any asset, remove from index
-        if storage::get_position(&env, &receiver).is_none() {
-            storage::remove_from_position_index(&env, &receiver);
+        if storage::get_position(&env, &user).is_none() {
+            storage::remove_from_position_index(&env, &user);
         }
 
         let token_client = token::Client::new(&env, &asset);
-        token_client.transfer(&env.current_contract_address(), &receiver, &amount);
+        token_client.transfer(&env.current_contract_address(), &user, &amount);
 
         events::Withdrawn {
-            receiver,
+            user,
             asset,
             amount,
         }
@@ -283,6 +292,11 @@ impl VaultContract {
 
         let new_balance = balance - amount;
         storage::set_position_balance(&env, &user, &asset, new_balance);
+
+        // If this asset balance reached zero, remove asset from user's assets list
+        if new_balance == 0 {
+            storage::remove_user_asset(&env, &user, &asset);
+        }
 
         // If the user has no remaining balance across any asset, remove from index
         if storage::get_position(&env, &user).is_none() {
