@@ -1,8 +1,8 @@
 #![cfg(test)]
 
 use super::*;
-use soroban_sdk::testutils::{Address as _, Events, Ledger as _};
-use soroban_sdk::{Address, Env, Symbol, TryFromVal};
+use soroban_sdk::testutils::Events;
+use soroban_sdk::{Symbol, TryFromVal};
 
 #[test]
 fn test_pause_success() {
