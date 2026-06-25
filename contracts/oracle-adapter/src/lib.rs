@@ -11,6 +11,8 @@ pub enum OracleError {
     AlreadyPaused = 4,
     FeederNotFound = 5,
     NotPaused = 6,
+    AlreadyAuthorized = 7,
+    Unauthorized = 8,
 }
 
 #[contractevent]
@@ -19,6 +21,12 @@ pub struct AdminChanged {
     pub old_admin: Address,
     pub new_admin: Address,
 }
+#[contractevent]
+#[derive(Clone, Debug, PartialEq)]
+pub struct FeederAdded {
+    pub feeder: Address,
+}
+
 
 mod events;
 mod storage;
@@ -66,11 +74,11 @@ impl OracleContract {
     }
 
     pub fn set_price(env: Env, asset: Address, price: i128, timestamp: u64) {
-        let caller = match storage::get_admin(&env) {
+        let admin = match storage::get_admin(&env) {
             Some(addr) => addr,
             None => soroban_sdk::panic_with_error!(&env, OracleError::NotInitialized),
         };
-        caller.require_auth();
+        admin.require_auth();
 
         if storage::is_paused(&env) {
             soroban_sdk::panic_with_error!(&env, OracleError::OraclePaused);
@@ -146,6 +154,22 @@ impl OracleContract {
 
         storage::set_paused(&env, false);
         events::Unpaused { by: admin }.publish(&env);
+    }
+
+    pub fn add_authorized_feeder(env: Env, feeder: Address) {
+        let admin = match storage::get_admin(&env) {
+            Some(addr) => addr,
+            None => soroban_sdk::panic_with_error!(&env, OracleError::NotInitialized),
+        };
+        admin.require_auth();
+
+        if storage::is_authorized_feeder(&env, &feeder) {
+            soroban_sdk::panic_with_error!(&env, OracleError::AlreadyAuthorized);
+        }
+
+        storage::set_authorized_feeder(&env, &feeder);
+
+        FeederAdded { feeder }.publish(&env);
     }
 
     pub fn remove_authorized_feeder(env: Env, feeder: Address) {
