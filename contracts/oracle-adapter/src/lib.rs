@@ -9,6 +9,7 @@ pub enum OracleError {
     AlreadyAdmin = 2,
     OraclePaused = 3,
     AlreadyPaused = 4,
+    FeederNotFound = 5,
 }
 
 #[contractevent]
@@ -144,6 +145,26 @@ impl OracleContract {
 
         storage::set_paused(&env, false);
         events::Unpaused { paused: false }.publish(&env);
+    }
+
+    pub fn remove_authorized_feeder(env: Env, feeder: Address) {
+        let admin = match storage::get_admin(&env) {
+            Some(addr) => addr,
+            None => soroban_sdk::panic_with_error!(&env, OracleError::NotInitialized),
+        };
+        admin.require_auth();
+
+        if !storage::has_authorized_feeder(&env, &feeder) {
+            soroban_sdk::panic_with_error!(&env, OracleError::FeederNotFound);
+        }
+
+        storage::remove_authorized_feeder(&env, &feeder);
+
+        events::FeederRemoved { feeder }.publish(&env);
+    }
+
+    pub fn is_authorized_feeder(env: Env, feeder: Address) -> bool {
+        storage::is_authorized_feeder(&env, &feeder)
     }
 }
 
