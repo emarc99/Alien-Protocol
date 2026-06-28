@@ -1,5 +1,7 @@
 #![no_std]
-use soroban_sdk::{contract, contracterror, contractevent, contractimpl, Address, Bytes, Env, Symbol, Vec};
+use soroban_sdk::{
+    contract, contracterror, contractevent, contractimpl, Address, Bytes, Env, Symbol, Vec,
+};
 
 #[contracterror]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -31,10 +33,9 @@ pub struct FeederAdded {
 }
 
 mod events;
+pub mod oracle;
 mod storage;
 mod types;
-pub mod oracle;
-
 
 pub use types::{DataKey, PriceData};
 
@@ -224,10 +225,7 @@ impl OracleContract {
         oracle::push::write_prices(env, caller, feed_ids, payload)
     }
 
-    pub fn read_prices(
-        env: Env,
-        feed_ids: Vec<Symbol>,
-    ) -> Result<Vec<PriceData>, OracleError> {
+    pub fn read_prices(env: Env, feed_ids: Vec<Symbol>) -> Result<Vec<PriceData>, OracleError> {
         oracle::push::read_prices(env, feed_ids)
     }
 
@@ -251,9 +249,7 @@ impl OracleContract {
         Ok(())
     }
 
-    pub fn get_redstone_config(
-        env: Env,
-    ) -> Result<(Vec<Bytes>, u32), OracleError> {
+    pub fn get_redstone_config(env: Env) -> Result<(Vec<Bytes>, u32), OracleError> {
         if !oracle::storage::is_redstone_initialized(&env) {
             return Err(OracleError::NotInitialized);
         }

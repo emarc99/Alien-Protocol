@@ -2,8 +2,8 @@
 
 extern crate std;
 
-use crate::OracleContractClient;
 use crate::tests::setup_env;
+use crate::OracleContractClient;
 use soroban_sdk::{
     testutils::{Address as _, Ledger},
     Address, Bytes, Env, Symbol, Vec,
@@ -12,7 +12,7 @@ use soroban_sdk::{
 fn hex_to_bytes(env: &Env, hex: &str) -> Bytes {
     let mut res = std::vec::Vec::new();
     for i in (0..hex.len()).step_by(2) {
-        let b = u8::from_str_radix(&hex[i..i+2], 16).unwrap();
+        let b = u8::from_str_radix(&hex[i..i + 2], 16).unwrap();
         res.push(b);
     }
     Bytes::from_slice(env, &res)
@@ -129,7 +129,7 @@ fn test_push_model_success() {
     // Read successfully
     let stored = client.read_prices(&feed_ids);
     assert_eq!(stored.len(), 2);
-    
+
     let btc_data = stored.get(0).unwrap();
     assert_eq!(btc_data.price, 8396083019375);
     assert_eq!(btc_data.timestamp, 1744829560000);

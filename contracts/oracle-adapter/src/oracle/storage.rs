@@ -46,6 +46,7 @@ pub fn set_redstone_threshold(env: &Env, threshold: u32) {
 }
 
 pub fn is_redstone_initialized(env: &Env) -> bool {
-    env.storage().instance().has(&OracleDataKey::RedStoneSigners)
+    env.storage()
+        .instance()
+        .has(&OracleDataKey::RedStoneSigners)
 }
-
