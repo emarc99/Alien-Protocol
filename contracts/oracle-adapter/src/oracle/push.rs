@@ -140,15 +140,7 @@ pub fn write_prices(
         }
 
         let val_bytes = fv.value.as_be_bytes();
-        let mut fits = true;
-        for i in 0..16 {
-            if val_bytes[i] != 0 {
-                fits = false;
-            }
-        }
-        if val_bytes[16] >= 128 {
-            fits = false;
-        }
+        let fits = val_bytes[0..16].iter().all(|&b| b == 0) && val_bytes[16] < 128;
         if !fits {
             return Err(OracleError::InvalidPayload);
         }
