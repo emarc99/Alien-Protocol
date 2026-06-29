@@ -14,6 +14,20 @@ impl MockOracleContract {
         env.storage().persistent().get(&asset)
     }
 
+    pub fn get_price_or_fail(env: Env, asset: Address) -> types::PriceData {
+        let price_data: types::PriceData = match env.storage().persistent().get(&asset) {
+            Some(pd) => pd,
+            None => panic!("price not found"),
+        };
+        let current_time = env.ledger().timestamp();
+        if current_time > price_data.timestamp
+            && current_time - price_data.timestamp > ORACLE_STALE_THRESHOLD
+        {
+            panic!("stale price");
+        }
+        price_data
+    }
+
     pub fn set_price(env: Env, asset: Address, price: i128, timestamp: u64) {
         let price_data = types::PriceData { price, timestamp };
         env.storage().persistent().set(&asset, &price_data);
