@@ -35,9 +35,11 @@ impl MockOracle {
             None => panic!("price not found"),
         };
         let current_time = env.ledger().timestamp();
-        if current_time > price_data.timestamp
-            && current_time - price_data.timestamp > ORACLE_STALE_THRESHOLD
-        {
+        let age = match current_time.checked_sub(price_data.timestamp) {
+            Some(delta) => delta,
+            None => panic!("stale price"),
+        };
+        if age > ORACLE_STALE_THRESHOLD {
             panic!("stale price");
         }
         price_data

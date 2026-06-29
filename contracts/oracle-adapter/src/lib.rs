@@ -1,7 +1,5 @@
 #![no_std]
-use soroban_sdk::{
-    contract, contractevent, contractimpl, Address, Bytes, Env, Symbol, Vec,
-};
+use soroban_sdk::{contract, contractevent, contractimpl, Address, Bytes, Env, Symbol, Vec};
 
 mod errors;
 pub use errors::OracleError;

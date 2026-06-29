@@ -22,7 +22,6 @@ const PRICE_PRECISION: i128 = 10_000_000;
 
 /// Maximum age (in seconds) an oracle price may have before it is considered stale.
 
-
 #[contract]
 pub struct VaultContract;
 
